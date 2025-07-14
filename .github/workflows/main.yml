@@ -13,7 +13,14 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v3
 
-      - name: Deploy to EC2
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run Tests ✅
+        run: npm test
+
+      - name: Deploy to EC2 🚀
+        if: success()
         uses: appleboy/ssh-action@v1.0.0
         with:
           host: ${{ secrets.HOST }}
@@ -25,5 +32,6 @@ jobs:
             git pull origin main
             npm install
             npm run build || echo "No build step"
+            pm2 restart my-test-app || pm2 start index.js --name my-test-app
             echo "✅ Deployment completed"
 

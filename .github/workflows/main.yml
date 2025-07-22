@@ -1,37 +1,27 @@
-name: CI/CD Pipeline
+name: Deploy App
 
 on:
   push:
     branches:
-      - staging
+      - main
+  workflow_dispatch:
 
 jobs:
-  build-test:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-      - name: Install Dependencies
-        run: npm install
-      - name: Run Tests
-        run: npm test
-
   deploy:
-    needs: build-test
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/staging' || github.ref == 'refs/heads/main'
-    environment:
-      name: ${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}
+
     steps:
-      - name: Deploy to EC2
-        uses: appleboy/ssh-action@v1.0.0
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: SSH and deploy
+        uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.HOST }}
-          username: ubuntu
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.SSH_KEY }}
           script: |
             cd /home/ubuntu/my-test-app
-            git pull origin ${{ github.ref_name }}
-            npm install
+            git pull origin main
             pm2 restart my-test-app || pm2 start index.js --name my-test-app
 

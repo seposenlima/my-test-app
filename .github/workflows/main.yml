@@ -1,4 +1,4 @@
-name: Deploy to EC2
+name: Deploy to EC2 with Ansible
 
 on:
   push:
@@ -10,23 +10,23 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+      - name: Checkout repo
+        uses: actions/checkout@v4
 
-      - name: Decode SSH key
+      - name: Install Ansible
         run: |
-          echo "${{ secrets.EC2_SSH_KEY }}" | base64 -d > Myansiblekey.pem
-          chmod 600 Myansiblekey.pem
+          sudo apt update
+          sudo apt install -y ansible
 
-      - name: Deploy to EC2 via SSH
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ubuntu
-          key_path: ./Myansiblekey.pem
-          port: 22
-          script: |
-            cd /home/ubuntu/my-test-app
-            git pull origin main
-            pm2 restart my-test-app || pm2 start index.js --name my-test-app
+      - name: Setup SSH Key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.ANSIBLE_PRIVATE_KEY_BASE64 }}" | base64 -d > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H 47.129.39.89 >> ~/.ssh/known_hosts
+
+      - name: Run Ansible Playbook
+        run: |
+          ansible-playbook -i inventory.yml playbook.yml \
+            --private-key ~/.ssh/id_rsa -u ubuntu
 

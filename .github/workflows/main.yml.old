@@ -1,0 +1,32 @@
+name: Deploy to EC2 with Ansible
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Install Ansible
+        run: |
+          sudo apt update
+          sudo apt install -y ansible
+
+      - name: Setup SSH Key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.ANSIBLE_PRIVATE_KEY_BASE64 }}" | base64 -d > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H 47.129.39.89 >> ~/.ssh/known_hosts
+
+      - name: Run Ansible Playbook
+        run: |
+          ansible-playbook -i inventory.yml playbook.yml \
+            --private-key ~/.ssh/id_rsa -u ubuntu
+
